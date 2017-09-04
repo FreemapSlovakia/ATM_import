@@ -62,7 +62,10 @@ known_operators = {'CryptoDiggers Team':     (1, '', 'CryptoDig.'),
                    'Slovenská sporiteľňa':   (677, r'\d{4}',
                                               'SLSP'),
                    'VÚB':                    (572, r'S6AV[0-9]{3}[A-Z]',
-                                              'VÚB')}
+                                              'VÚB'),
+                   'Raiffeisen Bank':        (307, r'.*',
+                                              'Raiff')
+                   }
 
 # locale nastavujeme kvoli abecednemu radeniu
 locale.setlocale(locale.LC_ALL, 'sk_SK.utf8')
@@ -82,10 +85,10 @@ def query_sk(filter):
       ._;
       )->.boundaryarea;
       {}'''.format(filter)
-    api = overpass.API(timeout=600,
-                       endpoint='http://api.openstreetmap.fr/oapi/interpreter')
+    api = overpass.API(timeout=600)
     result = api.Get(query)["features"]
     return result
+
 
 result = query_sk('''node(area.boundaryarea)
                      ["amenity"="atm"]
