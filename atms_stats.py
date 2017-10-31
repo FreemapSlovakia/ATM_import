@@ -201,7 +201,7 @@ for operator, group in itertools.groupby(all_operators):
         total = known_operators[operator][0]
         ratio = float(actual_count) / total
     else:
-        total = 0
+        total = 1
         ratio = 0
     refcount = operator_counts.get(operator, [0])[0] + operator_counts.get(operator, [0])[1]
     if refcount:
