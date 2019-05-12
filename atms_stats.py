@@ -111,6 +111,7 @@ for atmdata in result:
     all_tags.extend(list(atmdata['properties'].keys()))
     id = atmdata['id']
     if (name or ref) and 'operator' not in atmdata['properties']:
+        name = name if name else 'undefined'
         name_or_ref_wo_operator.append((name, id))
 
 print('Prazdny operator tag + neprazdny name/ref tag:',
