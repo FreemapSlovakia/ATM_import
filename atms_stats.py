@@ -31,6 +31,8 @@ the following issues/stats:
  - for known operators atms shows ratio of mapped/total%
 
 """
+from tempfile import NamedTemporaryFile
+
 import overpass
 import locale
 import itertools
@@ -55,7 +57,7 @@ known_operators = {'CryptoDiggers Team':     (1, '', 'CryptoDig.'),
                                               'Prima'),
                    'Sberbank':               (75,  r'S6AL[0-9]{2,3}[A-Z]',
                                               'Sberbank'),
-                   'Tatra banka':            (309, r'TATN[0-9]{3}[A-Z]',
+                   'Tatra banka':            (309, r'(TATN|TBIN)[0-9]{3}[A-Z]',
                                               'TB'),
                    'UniCredit Bank':         (150, r'S6AN[0-9]{3}[A-Z]',
                                               'UniCredit'),
@@ -90,20 +92,20 @@ def query_sk(filter):
     return result
 
 
-result = query_sk('''node(area.boundaryarea)
-                     ["amenity"="atm"]
-                     ["operator"!~".*"]
-                     ->.atm;
-                     node(area.boundaryarea)
-                     ["amenity"="bank"]
-                     ["atm"="yes"]
-                     ["operator"]
-                     ->.bank;
-                     (.atm; .bank; >;);''')
+result_no_operator = query_sk('''node(area.boundaryarea)
+                                 ["amenity"="atm"]
+                                 ["operator"!~".*"]
+                                 ->.atm;
+                                 node(area.boundaryarea)
+                                 ["amenity"="bank"]
+                                 ["atm"="yes"]
+                                 ["operator"]
+                                 ->.bank;
+                                 (.atm; .bank; >;);''')
 
 name_or_ref_wo_operator = []
 
-for atmdata in result:
+for atmdata in result_no_operator:
     name = atmdata['properties'].get('name')
     ref = atmdata['properties'].get('ref')
     if atmdata['properties'].get('note'):
@@ -117,16 +119,16 @@ for atmdata in result:
 print('Prazdny operator tag + neprazdny name/ref tag:',
       sorted(name_or_ref_wo_operator))
 
-result = query_sk('''node(area.boundaryarea)
-                     ["amenity"="atm"]
-                     ["operator"]
-                     ->.atm;
-                     node(area.boundaryarea)
-                     ["amenity"="bank"]
-                     ["operator"]
-                     ["atm"="yes"]
-                     ->.bank;
-                     (.atm; .bank; >;);''')
+result_all = query_sk('''node(area.boundaryarea)
+                         ["amenity"="atm"]
+                         ["operator"]
+                         ->.atm;
+                         node(area.boundaryarea)
+                         ["amenity"="bank"]
+                         ["operator"]
+                         ["atm"="yes"]
+                         ->.bank;
+                         (.atm; .bank; >;);''')
 
 all_operators = []
 unknown_operators = []
@@ -147,9 +149,10 @@ def add_one(operator, index):
         operator_counts[operator] = [0, 0, 0]
         operator_counts[operator][index] = 1
 
+
 REFNOFIXME, REFFIXME, NOREF = 0, 1, 2
 
-for atmdata in result:
+for atmdata in result_all:
     id = atmdata['id']
     operator = atmdata['properties']['operator']
     all_tags.extend(list(atmdata['properties'].keys()))
@@ -261,30 +264,30 @@ plt.show()
 
 print('Id neznamych operatorov:', unknown_operators)
 
-result = query_sk('''node(area.boundaryarea)
-                     ["amenity"="atm"]
-                     ["brand"]
-                     ->.atm;
-                     (.atm; >;);''')
+result_brand = query_sk('''node(area.boundaryarea)
+                           ["amenity"="atm"]
+                           ["brand"]
+                           ->.atm;
+                           (.atm; >;);''')
 
 brand_tags = []
 
-for atmdata in result:
+for atmdata in result_brand:
     brand = atmdata['properties']['brand']
     brand_tags.append(brand)
 
 print('Zoznam bankomatov s tagom brand:', list(brand_tags))
 
-result = query_sk('''node(area.boundaryarea)
-                     ["amenity"="atm"]
-                     ["name"]
-                     ->.atm;
-                     (.atm; >;);''')
+result_name = query_sk('''node(area.boundaryarea)
+                          ["amenity"="atm"]
+                          ["name"]
+                          ->.atm;
+                          (.atm; >;);''')
 
 names = []
 names_ids = []
 
-for atmdata in result:
+for atmdata in result_name:
     name = atmdata['properties']['name']
     id = atmdata['id']
     names.append(name)
@@ -303,3 +306,9 @@ for tag, group in itertools.groupby(all_tags):
                            len(list(group))))
 
 print('ID bankomatov s note tagom', ids_with_note_tag)
+
+f = NamedTemporaryFile(delete=False, encoding='utf-8', mode='w+t')
+f.write('\n'.join([str(x.items()) for x in result_all]))
+f.close()
+
+print('Data bankomatov s operatormi su ulozene v subore {0}'.format(f.name))
